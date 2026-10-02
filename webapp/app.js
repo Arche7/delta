@@ -50,6 +50,7 @@
   const money = (n, c = 'RUB') => signed(fmt(Math.abs(n), c === 'BTC' ? 8 : 2), n) + NB + (SYM[c] || c);
   const rub = (n) => signed(fmt(Math.abs(Math.round(n))), Math.round(n)) + NB + '₽';
   const int = (n) => signed(fmt(Math.abs(Math.round(n))), Math.round(n));
+  const short = (n) => (n >= 1e6 ? fmt(n / 1e6, 1) + 'М' : n >= 1e4 ? fmt(Math.round(n / 1e3)) + 'К' : fmt(Math.round(n)));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const LIGHT_CAT = { food: '#B86200', transport: '#0272B0', shop: '#C21F6A', home: '#6D35D9', fun: '#C2410C', health: '#047857',
     subs: '#1D4ED8', other: '#5B6170', salary: '#0B8A63', freelance: '#0272B0', gift: '#C21F6A', cashback: '#B86200', other_inc: '#5B6170' };
@@ -224,9 +225,9 @@
     const a = S.home.accounts[S.acc];
     const up = a.delta >= 0;
     return `<div class="chart-head"><div style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:12.5px">Баланс счёта · ${esc(a.name)}</span>
-        <span class="big num blur-t ${S.hidden ? 'blurred' : ''}" id="acc-big">${int(a.balance_rub)}<small>₽</small></span></div>
+        <span class="big num blur-t ${S.hidden ? 'blurred' : ''}" id="acc-big"><span id="acc-num">${int(a.balance_rub)}</span><small>₽</small></span></div>
         <div style="text-align:right;display:flex;flex-direction:column;gap:2px;padding-bottom:2px">
-        <span class="chg ${up ? 'up' : 'down'} num" id="acc-chg">${icon(up ? 'up2' : 'down2', 14, 'currentColor', 2.6)}${up ? '+' : '−'}${rub(Math.abs(a.delta))}</span>
+        <span class="chg ${up ? 'up' : 'down'} num" id="acc-chg"><span class="delta">Δ</span>${up ? '+' : '−'}${rub(Math.abs(a.delta))}</span>
         <span class="muted" style="font-size:12px" id="acc-when">за 30 дней</span></div></div>
       <div class="chart" id="acc-chart" style="height:128px;margin-top:4px">${areaChart(a.series, 354, 128)}
         <div class="hover-line" id="hv-line" hidden></div><div class="hover-dot" id="hv-dot" hidden></div><div class="tip num" id="hv-tip" hidden></div></div>`;
@@ -272,7 +273,7 @@
          <div class="sec-head"><h2>Категории как активы</h2><span>к прошлому месяцу</span></div><div class="glass list">${cats}</div></section>
        <section class="rise" style="animation-delay:.28s;display:flex;flex-direction:column;gap:10px">
          <div class="sec-head"><h2>Последние записи</h2><span>нажмите, чтобы удалить</span></div><div class="glass list">${recent}</div></section>`;
-    if (S.first) { countUp($('#total'), h.total); S.first = false; }
+    if (S.first) { countUp($('#total'), h.total); countUp($('#acc-num'), h.accounts[S.acc].balance_rub); S.first = false; }
     bindScrub();
   }
 
@@ -303,10 +304,10 @@
       line.style.left = px + 'px'; dot.style.left = px + 'px'; dot.style.top = py + 'px';
       tip.textContent = a.labels[i];
       tip.style.left = Math.max(0, Math.min(r.width - 70, px - 30)) + 'px';
-      $('#acc-big').innerHTML = int(a.series[i]) + '<small>₽</small>';
+      $('#acc-num').textContent = int(a.series[i]);
       const d = a.series[i] - a.series[0];
       $('#acc-chg').className = 'chg num ' + (d >= 0 ? 'up' : 'down');
-      $('#acc-chg').innerHTML = icon(d >= 0 ? 'up2' : 'down2', 14, 'currentColor', 2.6) + (d >= 0 ? '+' : '−') + rub(Math.abs(d));
+      $('#acc-chg').innerHTML = '<span class="delta">Δ</span>' + (d >= 0 ? '+' : '−') + rub(Math.abs(d));
       $('#acc-when').textContent = 'на ' + a.labels[i];
       haptic('soft');
     };
@@ -332,20 +333,32 @@
     const W = 322, H = 160;
     const real = s.bars.filter((b) => !b.ghost).map((b) => b.value);
     const sorted = [...real].sort((a, b) => a - b);
-    const cap = Math.max(1, (sorted.length > 3 ? sorted[sorted.length - 2] * 1.3 : Math.max(...real, 1) * 1.1));
+    const maxReal = Math.max(...real, 1);
+    // одна крупная трата (аренда) не должна сплющивать остальные дни: такой столбик рисуем «с разрывом»
+    let cap = Math.max(s.avg * 2.6, sorted.length > 3 ? sorted[sorted.length - 2] * 1.3 : 0);
+    cap = Math.max(1, s.avg * 1.15, Math.min(cap || maxReal * 1.1, maxReal * 1.1));
     const slot = W / s.bars.length, bw = Math.max(4, Math.min(16, slot * 0.6));
+    const top = H - 26;
+    const cut = [];
     const bars = s.bars.map((b, i) => {
-      const h = Math.max(3, Math.min(b.value, cap) / cap * (H - 26));
+      const h = Math.max(3, Math.min(b.value, cap) / cap * top);
       const x = slot * (i + 0.5) - bw / 2, y = H - h, rx = Math.min(5, bw / 2.5);
-      return b.ghost
-        ? `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${rx}" fill="none" stroke="var(--acc)" stroke-opacity=".55" stroke-dasharray="3 3" class="bar" style="animation-delay:${(0.5 + i * 0.02).toFixed(2)}s"/>`
-        : `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${rx}" fill="var(--acc)" fill-opacity="${S.sel === null || S.sel === i ? 1 : 0.4}" data-bar="${i}" class="bar" style="animation-delay:${(0.1 + i * 0.02).toFixed(2)}s"/>`;
+      const delay = `animation-delay:${((b.ghost ? 0.5 : 0.1) + i * 0.02).toFixed(2)}s`;
+      if (b.ghost) return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${rx}" fill="var(--acc)" fill-opacity=".22" class="bar" style="${delay}"/>`;
+      const attrs = `fill="var(--acc)" fill-opacity="${S.sel === null || S.sel === i ? 1 : 0.4}" data-bar="${i}"`;
+      if (b.value <= cap) return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${rx}" ${attrs} class="bar" style="${delay}"/>`;
+      cut.push(i);
+      return `<g class="bar" style="${delay}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="9" rx="${rx}" ${attrs}/>
+        <rect x="${x.toFixed(1)}" y="${(y + 13).toFixed(1)}" width="${bw.toFixed(1)}" height="${(h - 13).toFixed(1)}" rx="${rx}" ${attrs}/></g>`;
     }).join('');
-    const avgY = H - Math.min(s.avg, cap) / cap * (H - 26);
+    const cutTags = cut.length <= 4
+      ? cut.map((i) => `<span class="cut-tag num" style="left:${(slot * (i + 0.5) / W * 100).toFixed(2)}%;top:${H - top - 20}px">${short(s.bars[i].value)}</span>`).join('')
+      : '';
+    const avgY = H - Math.min(s.avg, cap) / cap * top;
     let tip = '';
     if (S.sel !== null && s.bars[S.sel]) {
       const b = s.bars[S.sel];
-      const h = Math.max(3, Math.min(b.value, cap) / cap * (H - 26));
+      const h = Math.max(3, Math.min(b.value, cap) / cap * top);
       const left = Math.max(0, Math.min(W - 110, slot * (S.sel + 0.5) - 50));
       tip = `<div class="tip" style="left:${left}px;top:${Math.max(-8, H - h - 52)}px;display:flex;flex-direction:column;gap:1px;padding:6px 10px;border-radius:11px;animation:pop .4s both">
         <span style="font-size:10.5px;opacity:.7">${esc(b.label)}</span><span style="font-size:13px" class="num">${rub(b.value)}</span></div>`;
@@ -372,9 +385,9 @@
         <div class="seg">${[['14d', '14Д'], ['1m', '1М'], ['3m', '3М']].map(([k, l]) => `<button class="${S.range === k ? 'on' : ''}" data-range="${k}">${l}</button>`).join('')}</div></div>
         <div class="bars"><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="overflow:visible">
           <line x1="0" x2="${W}" y1="${avgY.toFixed(1)}" y2="${avgY.toFixed(1)}" stroke="var(--text2)" stroke-dasharray="4 5" stroke-opacity=".7" vector-effect="non-scaling-stroke"/>${bars}</svg>
-          <span class="avg-tag" style="top:${(avgY - 22).toFixed(0)}px">средний день ${rub(s.avg)}</span>${tip}</div>
+          <span class="avg-tag" style="top:${(avgY - 22).toFixed(0)}px">средний день ${rub(s.avg)}</span>${cutTags}${tip}</div>
         <div class="row muted" style="justify-content:space-between;font-size:11.5px"><span>${labels[0]}</span>
-          ${s.range === '1m' ? '<span class="row" style="gap:6px"><span style="width:12px;height:8px;border:1px dashed var(--acc);border-radius:2px"></span>прогноз</span>' : ''}<span>${labels[1]}</span></div></section>
+          ${s.range === '1m' ? '<span class="row" style="gap:6px"><span style="width:12px;height:8px;background:var(--acc);opacity:.3;border-radius:2px"></span>прогноз</span>' : ''}<span>${labels[1]}</span></div></section>
       <section class="glass rise" style="animation-delay:.21s;padding:16px;display:flex;flex-direction:column;gap:12px">
         <h2 style="margin:0;font-size:15px;font-weight:800">Куда уходят деньги</h2>${shares}</section>
       ${s.spent > 0
@@ -386,6 +399,7 @@
   }
 
   // ---------------------------------------------------------------- курсы
+  const fxWidth = (v) => `calc(${Math.max(1, String(v).length)}ch + 6px)`;
   function renderRates() {
     const list = S.rates;
     const head = `<header class="top rise"><div><h1 style="margin:0;font-family:Unbounded,sans-serif;font-size:26px">Курсы</h1>
@@ -412,7 +426,7 @@
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px" class="muted"><span class="chg ${up ? 'up' : 'down'}">${icon(up ? 'up2' : 'down2', 13, 'currentColor', 2.6)}${fmt(Math.abs(cur.change30), 2)}%</span><span>за 30 дней</span></div></div>
         <div class="chart" style="height:136px;margin-top:6px">${areaChart(cur.series, 354, 136)}</div></section>
       <section class="glass conv rise" style="animation-delay:.14s">
-        <div class="row"><label class="sr" for="fx-amt">Сумма</label><input id="fx-amt" inputmode="decimal" value="${esc(S.fx.amt)}" class="num" autocomplete="off">
+        <div class="row"><label class="sr" for="fx-amt">Сумма</label><input id="fx-amt" inputmode="decimal" value="${esc(S.fx.amt)}" class="num" autocomplete="off" style="width:${fxWidth(S.fx.amt)}">
           <b class="muted">${S.fx.toRub ? cur.code : 'RUB'}</b>
           <button class="round-acc press" data-act="fx-swap" aria-label="Поменять направление">${icon('swap', 18, 'currentColor', 2.2)}</button></div>
         <div class="res num"><span id="fx-res">= ${S.fx.toRub ? fmt2(res) : fmt(res, cur.code === 'BTC' ? 8 : 2)}</span><span class="muted" style="font-size:14px;font-weight:800">${S.fx.toRub ? 'RUB' : cur.code}</span></div>
@@ -439,9 +453,9 @@
         <h2 style="margin:0;font-size:15px;font-weight:800">Без Telegram: двойное касание крышки iPhone</h2>
         <div class="muted" style="font-size:13px;line-height:1.45">Этот ключ вставляется в команду iPhone. Никому его не показывайте.</div>
         <div class="key-box" id="key-box">${esc(st.key)}</div>
-        <div class="row"><button class="btn2 press" data-act="copy-key">${icon('copy', 16)} Скопировать</button>
-        <a class="btn2 press" style="display:inline-flex;align-items:center" href="/ios#k=${encodeURIComponent(st.key)}" target="_blank" rel="noopener">Инструкция</a>
-        <button class="btn2 press" data-act="rotate-key">Новый ключ</button></div></section>
+        <div class="key-acts"><button class="btn2 press" data-act="copy-key">${icon('copy', 16)} Скопировать</button>
+        <a class="btn2 press" href="/ios#k=${encodeURIComponent(st.key)}" target="_blank" rel="noopener">Инструкция</a>
+        <button class="btn2 press wide" data-act="rotate-key">${icon('repeat', 16)} Выпустить новый ключ</button></div></section>
       <section class="glass rise empty" style="animation-delay:.28s;text-align:left;font-size:13px">Чтобы открыть DELTA в Safari и добавить на экран «Домой», отправьте боту <b>/web</b>.</section>`;
   }
 
@@ -498,7 +512,7 @@
       impact = `<div class="glass impact muted num" style="font-size:12.5px">Баланс станет ${rub(h.total + (rubV || 0))}</div>`;
     }
     sh.innerHTML = `<div class="grab"></div>
-      <div class="row"><button class="icon-btn press" style="background:var(--key);width:40px;height:40px" data-act="close-sheet" aria-label="Закрыть">${icon('close', 18, 'var(--text2)', 2.2)}</button>
+      <div class="row"><button class="icon-btn press" style="background:var(--key)" data-act="close-sheet" aria-label="Закрыть">${icon('close', 18, 'var(--text2)', 2.2)}</button>
         <div class="seg" style="flex:1"><button style="flex:1" class="${exp ? 'on' : ''}" data-type="exp">Расход</button><button style="flex:1" class="${!exp ? 'on' : ''}" data-type="inc">Доход</button></div></div>
       <div class="amount num ${exp ? '' : 'plus'}">${exp ? '−' : '+'}${num}${NB}${SYM[A.cur]}</div>
       <div class="amount-sub num">${esc(sub)}</div>
@@ -675,6 +689,7 @@
     if (e.target.id === 'note' && A) A.note = e.target.value;
     if (e.target.id === 'fx-amt') {
       S.fx.amt = e.target.value.replace(/[^0-9.,]/g, '').slice(0, 12);
+      e.target.style.width = fxWidth(S.fx.amt);
       const cur = S.rates.find((x) => x.code === S.fx.code);
       const v = parseFloat(S.fx.amt.replace(',', '.')) || 0;
       const res = S.fx.toRub ? v * cur.rate : v / cur.rate;
