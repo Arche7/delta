@@ -19,6 +19,17 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
+<div id="splash" class="splash" aria-hidden="true">
+  <div class="splash-glow"></div>
+  <div class="splash-mark">
+    <svg viewBox="0 0 120 120" width="112" height="112"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B3CFF"/><stop offset=".38" stop-color="#A24BFF"/><stop offset=".7" stop-color="#FF6FB5"/><stop offset="1" stop-color="#FFB27A"/></linearGradient></defs>
+      <rect class="sp-tile" x="4" y="4" width="112" height="112" rx="32" fill="url(#spg)"/>
+      <path class="sp-delta" d="M60 30 92 88H28z" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="splash-word"><span>D</span><span>E</span><span>L</span><span>T</span><span>A</span></div>
+  <div class="splash-tag">деньги под контролем</div>
+</div>
 <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span></div>
 <main id="screen" class="screen"></main>
 <nav id="tabs" class="tabbar" aria-label="Разделы"></nav>

@@ -183,6 +183,52 @@ class BotTests(Base):
                                        "text": text}})
         return telegram.SENT[-1][1]
 
+    def body(self, sent):
+        return sent.get("text") or sent.get("caption") or ""
+
+    def test_start_sends_welcome_photo_with_buttons(self):
+        old = config.PUBLIC_URL
+        config.PUBLIC_URL = "https://delta.example"
+        try:
+            sent = self.msg("/start")
+        finally:
+            config.PUBLIC_URL = old
+        method = telegram.SENT[-1][0]
+        self.assertEqual(method, "sendPhoto")
+        self.assertIn("/static/bot/welcome.jpg", sent["photo"])
+        self.assertIn("Арсений", sent["caption"])
+        self.assertLessEqual(len(sent["caption"]), 1024)  # лимит подписи к фото в Telegram
+        kb = [b.get("callback_data") for row in sent["reply_markup"]["inline_keyboard"] for b in row]
+        self.assertIn("tour", kb)
+        self.assertIn("help", kb)
+
+    def test_start_without_public_url_falls_back_to_text(self):
+        sent = self.msg("/start")
+        self.assertEqual(telegram.SENT[-1][0], "sendMessage")
+        self.assertIn("DELTA", sent["text"])
+
+    def test_tour_and_help_buttons(self):
+        old = config.PUBLIC_URL
+        config.PUBLIC_URL = "https://delta.example"
+        try:
+            bot.handle_update({"callback_query": {"id": "1", "data": "tour", "from": {"id": 111},
+                                                  "message": {"chat": {"id": 111}, "message_id": 5}}})
+            methods = [m for m, _ in telegram.SENT]
+            self.assertIn("sendMediaGroup", methods)
+            album = next(p for m, p in telegram.SENT if m == "sendMediaGroup")
+            self.assertEqual(len(album["media"]), 4)
+            self.assertIn("DELTA за 30 секунд", telegram.SENT[-1][1]["text"])
+            bot.handle_update({"callback_query": {"id": "2", "data": "help", "from": {"id": 111},
+                                                  "message": {"chat": {"id": 111}, "message_id": 6}}})
+            self.assertIn("Как пользоваться", telegram.SENT[-1][1]["text"])
+        finally:
+            config.PUBLIC_URL = old
+
+    def test_bot_media_files_exist(self):
+        folder = Path(__file__).parent.parent / "webapp" / "bot"
+        for name in ["welcome"] + [n for n, _ in bot.TOUR]:
+            self.assertTrue((folder / f"{name}.jpg").exists(), name)
+
     def test_record_and_undo_button(self):
         sent = self.msg("кофе 350")
         self.assertIn("Записано −350", sent["text"])
@@ -197,7 +243,8 @@ class BotTests(Base):
         self.assertEqual(services.recent(111), [])
 
     def test_commands(self):
-        self.assertIn("DELTA", self.msg("/start")["text"])
+        self.assertIn("DELTA", self.body(self.msg("/start")))
+        self.assertIn("Как пользоваться", self.msg("/help")["text"])
         self.assertIn("Всего", self.msg("/balance")["text"])
         self.assertIn("dk_", self.msg("/key")["text"])
         self.assertIn("Лимит на месяц", self.msg("/limit 100000")["text"])

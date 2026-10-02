@@ -44,6 +44,18 @@ def send(chat_id, text, keyboard=None):
                 reply_markup={"inline_keyboard": keyboard} if keyboard else None)
 
 
+def send_photo(chat_id, photo_url, caption, keyboard=None):
+    """Фото по ссылке (Telegram сам скачает его с нашего сервера) с подписью и кнопками."""
+    return call("sendPhoto", chat_id=chat_id, photo=photo_url, caption=caption, parse_mode="HTML",
+                reply_markup={"inline_keyboard": keyboard} if keyboard else None)
+
+
+def send_album(chat_id, photos):
+    """Альбом из 2–10 фото: [(ссылка, подпись), …]. Подпись видна, когда фото открыто."""
+    media = [{"type": "photo", "media": url, "caption": cap, "parse_mode": "HTML"} for url, cap in photos]
+    return call("sendMediaGroup", chat_id=chat_id, media=media)
+
+
 def edit(chat_id, message_id, text):
     return call("editMessageText", chat_id=chat_id, message_id=message_id, text=text, parse_mode="HTML")
 

@@ -187,7 +187,7 @@
   function renderTabs() {
     const t = (id, ic, label) => `<button class="tab press ${S.tab === id ? 'on' : ''}" data-tab="${id}" aria-current="${S.tab === id ? 'page' : 'false'}">${icon(ic, 22)}<span>${label}</span></button>`;
     $('#tabs').innerHTML = t('home', 'home', 'Главная') + t('stats', 'chart', 'Аналитика') +
-      `<button class="plus press" data-add="exp" aria-label="Новая запись">${icon('plus', 26, '#fff', 2.4)}</button>` +
+      `<button class="fab press" data-add="exp" aria-label="Новая запись">${icon('plus', 26, '#fff', 2.4)}</button>` +
       t('rates', 'globe', 'Курсы') + t('more', 'more', 'Ещё');
   }
 
@@ -256,9 +256,17 @@
           <span class="amt num ${t.sign > 0 ? 'plus' : ''} blur-t ${S.hidden ? 'blurred' : ''}">${esc(amount)}</span></button>`;
       }).join('')
       : '<div class="empty">Записей ещё нет.</div>';
+    const fresh = !h.recent.length && h.accounts.every((a) => !a.balance);
+    const onboard = fresh
+      ? `<section class="onboard rise" style="animation-delay:.1s"><h2>Добро пожаловать в DELTA</h2>
+          <p>Три шага — и приложение начнёт считать за вас.</p>
+          <div class="steps"><div><b>1</b>Впишите, сколько денег на счетах</div><div><b>2</b>Задайте лимит трат на месяц</div><div><b>3</b>Записывайте траты: «+» здесь или «кофе 350» боту</div></div>
+          <button class="cta press" data-act="setup">Указать остатки</button></section>`
+      : '';
     screen.innerHTML = header() +
       `<section class="stack rise" style="animation-delay:.07s" id="stack">${cardsHTML()}</section>
        <div class="dots" id="dots">${h.accounts.map((a, i) => `<button class="dot-btn ${i === S.acc ? 'on' : ''}" data-acc="${i}" aria-label="${esc(a.name)}"><span></span></button>`).join('')}</div>
+       ${onboard}
        <section class="glass chart-card rise" style="animation-delay:.14s" id="chart-card">${chartCardHTML()}</section>
        <section class="rise" style="animation-delay:.21s;display:flex;flex-direction:column;gap:10px">
          <div class="sec-head"><h2>Категории как активы</h2><span>к прошлому месяцу</span></div><div class="glass list">${cats}</div></section>
@@ -349,7 +357,7 @@
       : '<div class="empty" style="padding:8px">Трат в этом месяце пока нет.</div>';
     const fcText = lim
       ? (s.forecast <= lim ? 'в пределах лимита' : `больше лимита на ${rub(s.forecast - lim)}`)
-      : 'лимит не задан — его можно поставить во вкладке «Ещё»';
+      : 'лимит пока не задан';
     const labels = { '14d': ['14 дней назад', 'сегодня'], '1m': ['1 число', 'конец месяца'], '3m': ['13 недель назад', 'эта неделя'] }[s.range];
     screen.innerHTML = head +
       `<section class="glass ring-card rise" style="animation-delay:.07s"><div class="ring">
@@ -369,8 +377,12 @@
           ${s.range === '1m' ? '<span class="row" style="gap:6px"><span style="width:12px;height:8px;border:1px dashed var(--acc);border-radius:2px"></span>прогноз</span>' : ''}<span>${labels[1]}</span></div></section>
       <section class="glass rise" style="animation-delay:.21s;padding:16px;display:flex;flex-direction:column;gap:12px">
         <h2 style="margin:0;font-size:15px;font-weight:800">Куда уходят деньги</h2>${shares}</section>
-      <section class="insight rise" style="animation-delay:.28s"><span class="tile">${icon('spark', 18, 'var(--onacc)', 2)}</span>
-        <div>При таком темпе к концу месяца вы потратите <b>≈${NB}${rub(s.forecast)}</b> — ${fcText}.</div></section>`;
+      ${s.spent > 0
+        ? `<section class="insight rise" style="animation-delay:.28s"><span class="tile">${icon('spark', 18, 'var(--onacc)', 2)}</span>
+        <div>При таком темпе к концу месяца вы потратите <b>≈${NB}${rub(s.forecast)}</b> — ${fcText}.</div></section>`
+        : `<section class="insight rise" style="animation-delay:.28s"><span class="tile">${icon('spark', 18, 'var(--onacc)', 2)}</span>
+        <div>Здесь появится прогноз на конец месяца — после первых трат.${lim ? '' : ' А пока задайте лимит, чтобы видеть, сколько можно тратить в день.'}</div></section>`}
+      ${lim ? '' : '<button class="cta press rise" style="animation-delay:.32s" data-tab="more">Задать лимит</button>'}`;
   }
 
   // ---------------------------------------------------------------- курсы
@@ -609,6 +621,24 @@
       try { await api('/api/accounts/' + d.saveAcc, { method: 'PATCH', body: JSON.stringify({ name, balance: parseFloat(bal) }) }); closeSheet(); toast('Сохранено', ''); await loadHome(); renderMore(); } catch (err) { showErr(err); }
       return;
     }
+    if (d.act === 'setup') {
+      const rows = S.home.accounts.map((a) => `<label class="field">${esc(a.name)}, ${a.currency === 'RUB' ? '₽' : a.currency}
+        <input data-setup="${a.id}" inputmode="decimal" placeholder="0"></label>`).join('');
+      dialog(`<div class="grab"></div><h2 style="margin:4px 0 0;font-size:18px">Сколько денег сейчас?</h2>
+        <div class="muted" style="font-size:13px">Впишите остатки — потом их можно поправить во вкладке «Ещё». Пустое поле — 0.</div>
+        ${rows}<button class="cta press" data-act="save-setup">Готово</button>`);
+      return;
+    }
+    if (d.act === 'save-setup') {
+      try {
+        for (const inp of document.querySelectorAll('[data-setup]')) {
+          const v = parseFloat((inp.value || '').replace(/\s/g, '').replace(',', '.'));
+          if (v) await api('/api/accounts/' + inp.dataset.setup, { method: 'PATCH', body: JSON.stringify({ balance: v }) });
+        }
+        closeSheet(); haptic('ok'); toast('Готово', 'Остатки сохранены'); S.stats = {}; S.first = true; await loadHome();
+      } catch (err) { showErr(err); }
+      return;
+    }
     switch (d.act) {
       case 'hide': S.hidden = !S.hidden; document.querySelectorAll('.blur-t').forEach((n) => n.classList.toggle('blurred', S.hidden)); haptic('light'); break;
       case 'next-card': switchCard((S.acc + 1) % S.home.accounts.length); break;
@@ -653,16 +683,29 @@
   });
 
   // ---------------------------------------------------------------- старт
+  // ---------------------------------------------------------------- заставка
+  const splashStart = Date.now();
+  let splashSeen = false;
+  try { splashSeen = sessionStorage.getItem('delta_splash') === '1'; sessionStorage.setItem('delta_splash', '1'); } catch (e) { splashSeen = false; }
+  if (splashSeen || reduce) { const sp = $('#splash'); if (sp) sp.remove(); }
+  function hideSplash() {
+    const sp = $('#splash');
+    if (!sp) return;
+    const wait = Math.max(0, 1700 - (Date.now() - splashStart));
+    setTimeout(() => { sp.classList.add('out'); setTimeout(() => sp.remove(), 600); }, wait);
+  }
+
   async function start() {
     if (tg) { tg.ready(); tg.expand(); try { tg.BackButton.onClick(closeSheet); } catch (e) { /* старый клиент */ } try { tg.onEvent('themeChanged', () => { applyTheme(); render(); }); } catch (e) { /* нет */ } }
     applyTheme();
     renderTabs();
     renderHome();
-    try { await login(); } catch (e) { fatal(e.message); return; }
-    if (!(tg && tg.initData) && !key) { fatal('Нужен вход'); return; }
+    try { await login(); } catch (e) { hideSplash(); fatal(e.message); return; }
+    if (!(tg && tg.initData) && !key) { hideSplash(); fatal('Нужен вход'); return; }
     try {
       await Promise.all([loadHome(), loadRates().catch(() => null)]);
-    } catch (e) { showErr(e); return; }
+    } catch (e) { hideSplash(); showErr(e); return; }
+    hideSplash();
     if (params.get('add') === 'exp' || params.get('add') === 'inc') openAdd(params.get('add'));
     const tab = params.get('tab');
     if (tab && ['stats', 'rates', 'more'].includes(tab)) { S.tab = tab; render(); }
