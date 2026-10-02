@@ -1,0 +1,12 @@
+.git
+.venv
+.groundwork
+__pycache__
+data
+tests
+scripts
+docs
+specs
+DECISIONS
+*.db
+*.db-*

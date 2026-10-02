@@ -1,0 +1,36 @@
+{
+  "AGENTS.md": {
+    "at": "2026-10-01T17:15:49+0300",
+    "by": "gemer4461@gmail.com",
+    "epoch": 1790864149,
+    "hash": "56abeebb6e6ff808",
+    "snapshot": {
+      "signals": {}
+    }
+  },
+  "ARCHITECTURE.md": {
+    "at": "2026-10-01T17:15:49+0300",
+    "by": "gemer4461@gmail.com",
+    "epoch": 1790864149,
+    "hash": "ea1ed8e90dd52b02",
+    "snapshot": {
+      "rfcs": [],
+      "signals": {},
+      "toplevel": []
+    }
+  },
+  "CONSTITUTION.md": {
+    "at": "2026-10-01T17:15:49+0300",
+    "by": "gemer4461@gmail.com",
+    "epoch": 1790864149,
+    "hash": "ad199084a631bd18",
+    "snapshot": {}
+  },
+  "PROJECT.md": {
+    "at": "2026-10-01T17:15:49+0300",
+    "by": "gemer4461@gmail.com",
+    "epoch": 1790864149,
+    "hash": "cdc2ec7fd00c72c2",
+    "snapshot": {}
+  }
+}

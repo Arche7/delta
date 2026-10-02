@@ -1,0 +1,1 @@
+- 2026-10-01 17:22 (gemer4461@gmail.com): RFC-0001 дописан и подтверждён владельцем, ждёт /groundwork-specflow:approve. Дальше: спецификация макетов → рисунок на доске дизайна (canvas Ujjbvy1bHZEtudANTiLn14).

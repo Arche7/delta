@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ValCurs Date="01.10.2026" name="Foreign Currency Market">
+<Valute ID="R01235"><NumCode>840</NumCode><CharCode>USD</CharCode><Nominal>1</Nominal><Name>Доллар США</Name><Value>81,5012</Value><VunitRate>81,5012</VunitRate></Valute>
+<Valute ID="R01239"><NumCode>978</NumCode><CharCode>EUR</CharCode><Nominal>1</Nominal><Name>Евро</Name><Value>95,2034</Value><VunitRate>95,2034</VunitRate></Valute>
+<Valute ID="R01375"><NumCode>156</NumCode><CharCode>CNY</CharCode><Nominal>1</Nominal><Name>Юань</Name><Value>11,4012</Value><VunitRate>11,4012</VunitRate></Valute>
+<Valute ID="R01230"><NumCode>784</NumCode><CharCode>AED</CharCode><Nominal>1</Nominal><Name>Дирхам ОАЭ</Name><Value>22,1901</Value><VunitRate>22,1901</VunitRate></Valute>
+<Valute ID="R01335"><NumCode>398</NumCode><CharCode>KZT</CharCode><Nominal>100</Nominal><Name>Тенге</Name><Value>15,8000</Value><VunitRate>0,158</VunitRate></Valute>
+</ValCurs>

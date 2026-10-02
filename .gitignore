@@ -1,0 +1,18 @@
+# окружение и кэш Python
+.venv/
+__pycache__/
+*.pyc
+
+# локальная база и демо-данные
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# секреты — никогда не в git
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store

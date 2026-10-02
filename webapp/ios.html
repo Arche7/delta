@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DELTA — команда iPhone</title>
+<style>
+:root{--bg:#08061A;--text:#F4F1FF;--text2:rgba(244,241,255,.68);--card:rgba(255,255,255,.06);--bd:rgba(255,255,255,.12);--acc:#C6B4FF}
+@media (prefers-color-scheme:light){:root{--bg:#F0EDFB;--text:#160F33;--text2:#575073;--card:rgba(255,255,255,.75);--bd:rgba(40,20,90,.1);--acc:#5A38F5}}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 -apple-system,system-ui,sans-serif;padding:24px 16px 60px}
+main{max-width:640px;margin:0 auto}
+h1{font-size:26px;line-height:1.2;margin:0 0 12px} h2{font-size:19px;margin:28px 0 8px}
+li{margin:4px 0} ol,ul{padding-left:22px}
+code{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:1px 6px;font-size:14px;overflow-wrap:anywhere}
+.addr,.key{color:var(--acc);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+th,td{text-align:left;border-top:1px solid var(--bd);padding:8px 6px;vertical-align:top}
+.top{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:14px 16px;margin:0 0 18px;font-size:14px;color:var(--text2)}
+</style></head><body><main>
+<div class="top" id="top">Адрес сервера и ваш ключ подставлены в инструкцию автоматически.</div>
+<h1>Команда iPhone «DELTA» — запись трат без Telegram</h1>
+<p>Команда запускается двойным касанием задней крышки iPhone (или кнопкой «Действие» на iPhone 15 Pro и новее), спрашивает сумму и категорию и отправляет запись на сервер DELTA. В ответ приходит уведомление «Записано −350 ₽ · Еда».</p>
+<p>Перед началом возьмите у бота две вещи:</p>
+<ul>
+<li><b>адрес сервера</b> — например <code>https://delta-production.up.railway.app</code>;
+</li>
+<li><b>личный ключ</b> — отправьте боту <code>/key</code>. Ключ начинается с <code>dk_</code>. Никому его не показывайте; если он попал не туда, <code>/key new</code> выдаст новый.
+</li></ul>
+<p>Названия действий в «Командах» могут немного отличаться в разных версиях iOS — в скобках указано английское название, по нему тоже ищется.</p>
+<h2>1. Создайте команду</h2>
+<ol>
+<li>Откройте приложение <b>«Команды»</b> (Shortcuts) → вкладка «Быстрые команды» → <b>«+»</b> в правом верхнем углу.
+</li>
+<li>Нажмите на название вверху → <b>«Переименовать»</b> → <code>DELTA</code>.
+</li></ol>
+<h2>2. Меню из четырёх пунктов</h2>
+<ol>
+<li>Добавьте действие <b>«Выбрать из меню»</b> (Choose from Menu).
+</li>
+<li>Вопрос: <code>DELTA</code>. Пункты: <code>Расход</code>, <code>Доход</code>, <code>Курс</code>, <code>Баланс</code> (лишние пункты удалите, недостающие добавьте кнопкой «Добавить новый объект»).
+</li></ol>
+<h2>3. Пункт «Расход»</h2>
+<p>Перетаскивайте действия внутрь блока «Расход»:</p>
+<ol>
+<li><b>«Запросить ввод»</b> (Ask for Input): тип — <b>Число</b>, вопрос — <code>Сумма расхода</code>.
+</li>
+<li><b>«Список»</b> (List): впишите строки <code>Еда</code>, <code>Транспорт</code>, <code>Покупки</code>, <code>Дом</code>, <code>Досуг</code>, <code>Здоровье</code>, <code>Подписки</code>, <code>Другое</code>.
+</li>
+<li><b>«Выбрать из списка»</b> (Choose from List): список — результат шага 2, вопрос — <code>Категория</code>.
+</li>
+<li><b>«Получить содержимое URL»</b> (Get Contents of URL):
+<ul>
+<li>URL: <code><span class="addr">АДРЕС</span>/api/quick</code> (например <code>https://delta-production.up.railway.app/api/quick</code>);
+</li>
+<li>нажмите «Показать больше» → <b>Метод: POST</b>;
+</li>
+<li><b>Заголовки</b> → добавить: ключ <code>Authorization</code>, значение <code>Bearer <span class="key">dk_ваш_ключ</span></code> (слово Bearer, пробел, ключ);
+</li>
+<li><b>Тело запроса: JSON</b>, поля:
+</li>
+<li><code>type</code> — текст <code>exp</code>;
+</li>
+<li><code>amount</code> — переменная <b>«Введённые данные»</b> (Provided Input) из шага 1;
+</li>
+<li><code>category</code> — переменная <b>«Выбранный объект»</b> (Chosen Item) из шага 3.
+</li></ul>
+</li>
+<li><b>«Получить значение из словаря»</b> (Get Dictionary Value): ключ <code>text</code>.
+</li>
+<li><b>«Показать уведомление»</b> (Show Notification): текст — переменная «Значение словаря».
+</li></ol>
+<h2>4. Пункт «Доход»</h2>
+<p>Повторите шаги из пункта 3 внутри блока «Доход» с двумя отличиями:</p>
+<ul>
+<li>в списке категорий: <code>Зарплата</code>, <code>Фриланс</code>, <code>Подарок</code>, <code>Кешбэк</code>, <code>Другой доход</code>;
+</li>
+<li>в теле запроса <code>type</code> — <code>inc</code>.
+</li></ul>
+<p>Подсказка: зажмите действие → «Дублировать», чтобы не собирать заново.</p>
+<h2>5. Пункт «Курс»</h2>
+<ol>
+<li><b>«Запросить ввод»</b>: тип <b>Число</b>, вопрос <code>Сколько?</code>.
+</li>
+<li><b>«Список»</b>: <code>usd</code>, <code>eur</code>, <code>cny</code>, <code>usdt</code>, <code>btc</code>.
+</li>
+<li><b>«Выбрать из списка»</b>: вопрос <code>Валюта</code>.
+</li>
+<li><b>«Получить содержимое URL»</b>: URL <code><span class="addr">АДРЕС</span>/api/quick/rate?amount=</code> + переменная «Введённые данные» + <code>&amp;code=</code> + переменная «Выбранный объект». Метод <b>GET</b>, заголовок <code>Authorization: Bearer <span class="key">dk_ваш_ключ</span></code>.
+</li>
+<li><b>«Получить значение из словаря»</b> с ключом <code>text</code> → <b>«Показать уведомление»</b>.
+</li></ol>
+<h2>6. Пункт «Баланс»</h2>
+<ol>
+<li><b>«Получить содержимое URL»</b>: <code><span class="addr">АДРЕС</span>/api/quick/balance</code>, метод <b>GET</b>, тот же заголовок <code>Authorization</code>.
+</li>
+<li><b>«Получить значение из словаря»</b> <code>text</code> → <b>«Показать результат»</b> (Show Result) — так видно все счета сразу.
+</li></ol>
+<h2>7. Повесьте команду на заднюю крышку</h2>
+<p><b>Настройки → Универсальный доступ → Касание → Касание задней панели</b> (Back Tap) → <b>Двойное касание</b> → прокрутите вниз до раздела «Быстрые команды» → <b>DELTA</b>.</p>
+<p>На iPhone 15 Pro и новее можно ещё: <b>Настройки → Кнопка «Действие»</b> → «Быстрая команда» → DELTA.</p>
+<h2>8. Проверка</h2>
+<p>Дважды стукните по крышке → «Расход» → <code>350</code> → «Еда». Через пару секунд придёт уведомление «Записано −350 ₽ · Еда», и запись появится в Mini App.</p>
+<h2>Если что-то не так</h2>
+<table><tr><th>Что видно</th><th>Что делать</th></tr>
+<tr><td>«Нужен вход…»</td><td>Проверьте заголовок: <code>Authorization</code>, значение <code>Bearer </code> + ключ, без лишних пробелов. Ключ мог смениться после <code>/key new</code>.</td></tr>
+<tr><td>«Сумма должна быть числом»</td><td>В «Запросить ввод» тип должен быть «Число».</td></tr>
+<tr><td>Ничего не приходит</td><td>Проверьте адрес сервера: откройте <code><span class="addr">АДРЕС</span>/health</code> в Safari — должно быть <code>ok</code>.</td></tr>
+<tr><td>Категория стала «Другое»</td><td>Название в списке должно совпадать с категорией в приложении (<code>Еда</code>, <code>Транспорт</code>…).</td></tr>
+</table>
+</main>
+<script>
+(function () {
+  var k = '';
+  try { k = new URLSearchParams(location.hash.slice(1)).get('k') || ''; } catch (e) { k = ''; }
+  document.querySelectorAll('.addr').forEach(function (e) { e.textContent = location.origin; });
+  if (k) document.querySelectorAll('.key').forEach(function (e) { e.textContent = k; });
+  else document.getElementById('top').textContent = 'Адрес подставлен. Ключ получите у бота командой /key и вставьте вместо dk_ваш_ключ.';
+})();
+</script></body></html>
