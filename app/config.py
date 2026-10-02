@@ -7,7 +7,15 @@ from datetime import timedelta, timezone
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 
 # Публичный адрес сервиса, например https://delta-production.up.railway.app (без «/» в конце).
-PUBLIC_URL = os.environ.get("PUBLIC_URL", "").rstrip("/")
+def _public_url(raw):
+    """Адрес без пробелов и «/» в конце; если забыли https:// — добавляем (Telegram принимает только https)."""
+    url = (raw or "").strip().rstrip("/")
+    if url and not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    return url
+
+
+PUBLIC_URL = _public_url(os.environ.get("PUBLIC_URL", ""))
 
 # Файл базы SQLite. На Railway подключите Volume и укажите путь внутри него, например /data/delta.db.
 DB_PATH = os.environ.get("DB_PATH", "data/delta.db")

@@ -1,6 +1,7 @@
 """Минимальный клиент Telegram Bot API на стандартной библиотеке (без aiogram)."""
 import json
 import logging
+import urllib.error
 import urllib.request
 
 from . import config
@@ -25,6 +26,14 @@ def call(method, **params):
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        # Telegram объясняет причину в теле ответа («description») — пишем её в лог Railway.
+        try:
+            reason = json.loads(e.read()).get("description", "")
+        except Exception:
+            reason = ""
+        log.warning("Telegram %s не выполнен: %s %s", method, e, reason)
+        return {"ok": False, "description": reason}
     except Exception as e:
         log.warning("Telegram %s не выполнен: %s", method, e)
         return {"ok": False}
